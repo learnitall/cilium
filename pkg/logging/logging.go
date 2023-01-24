@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/klog/v2"
@@ -197,7 +198,8 @@ func GetFormatter(format LogFormat) logrus.Formatter {
 		}
 	case LogFormatJSON:
 		return &logrus.JSONFormatter{
-			DisableTimestamp: true,
+      DisableTimestamp: false,
+			TimestampFormat: time.RFC3339Nano,
 		}
 	}
 
