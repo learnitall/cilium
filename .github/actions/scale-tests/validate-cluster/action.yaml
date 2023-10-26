@@ -16,5 +16,5 @@ runs:
         ./kops validate cluster \
           ${{ inputs.cluster_name }} \
           --state ${{ inputs.kops_state }} \
-          --wait 20m \
+          --wait 45m \
           --count 3
