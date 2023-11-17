@@ -442,8 +442,8 @@ func (a *Allocator) ForeachCache(cb RangeFunc) {
 // selectAvailableID selects an available ID.
 // Returns a triple of the selected ID ORed with prefixMask, the ID string and
 // the originally selected ID.
-func (a *Allocator) selectAvailableID() (idpool.ID, string, idpool.ID) {
-	if id := a.idPool.LeaseAvailableID(); id != idpool.NoID {
+func (a *Allocator) selectAvailableID(key ...string) (idpool.ID, string, idpool.ID) {
+	if id := a.idPool.LeaseAvailableID(key...); id != idpool.NoID {
 		unmaskedID := id
 		id |= a.prefixMask
 		return id, id.String(), unmaskedID
@@ -557,7 +557,7 @@ func (a *Allocator) lockedAllocate(ctx context.Context, key AllocatorKey) (idpoo
 	}
 
 	log.WithField(fieldKey, k).Debug("Allocating new master ID")
-	id, strID, unmaskedID := a.selectAvailableID()
+	id, strID, unmaskedID := a.selectAvailableID(k)
 	if id == 0 {
 		return 0, false, false, fmt.Errorf("no more available IDs in configured space")
 	}

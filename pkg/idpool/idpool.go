@@ -7,6 +7,9 @@ import (
 	"strconv"
 
 	"github.com/cilium/cilium/pkg/lock"
+	"github.com/cilium/cilium/pkg/logging"
+	"github.com/cilium/cilium/pkg/logging/logfields"
+	"github.com/sirupsen/logrus"
 )
 
 // ID is a numeric identifier
@@ -14,6 +17,10 @@ type ID uint64
 
 // NoID is a special ID that represents "no ID available"
 const NoID ID = 0
+
+var (
+	log = logging.DefaultLogger.WithField(logfields.LogSubsys, "id-pool")
+)
 
 // String returns the string representation of an allocated ID
 func (i ID) String() string {
@@ -75,16 +82,16 @@ func NewIDPool(minID ID, maxID ID) IDPool {
 
 // LeaseAvailableID returns an available ID at random from the pool.
 // Returns an ID or NoID if no there is no available ID in the pool.
-func (p *IDPool) LeaseAvailableID() ID {
+func (p *IDPool) LeaseAvailableID(key ...string) ID {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	return p.idCache.leaseAvailableID()
+	return p.idCache.leaseAvailableID(key...)
 }
 
 // AllocateID returns a random available ID. Unlike LeaseAvailableID, the ID is
 // immediately marked for use and there is no need to call Use().
-func (p *IDPool) AllocateID() ID {
+func (p *IDPool) AllocateID(key ...string) ID {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -162,7 +169,28 @@ func newIDCache(minID ID, maxID ID) *idCache {
 }
 
 // allocateID returns a random available ID without leasing it
-func (c *idCache) allocateID() ID {
+func (c *idCache) allocateID(key ...string) ID {
+	if len(key) != 0 {
+		// attempt to allocate a pearson hash
+		pearson := ID(pearson16(key[0]))
+		pearsonLog := log.WithFields(logrus.Fields{
+			"key":  key[0],
+			"hash": pearson,
+		})
+
+		for id := range c.ids {
+			if id == pearson {
+				pearsonLog.Warn("using pearson hash for key")
+				delete(c.ids, id)
+				return id
+			}
+		}
+
+		pearsonLog.Warn("unable to use pearson hash for key")
+	}
+
+	log.WithFields(logrus.Fields{})
+
 	for id := range c.ids {
 		delete(c.ids, id)
 		return id
@@ -172,8 +200,8 @@ func (c *idCache) allocateID() ID {
 }
 
 // leaseAvailableID returns a random available ID.
-func (c *idCache) leaseAvailableID() ID {
-	id := c.allocateID()
+func (c *idCache) leaseAvailableID(key ...string) ID {
+	id := c.allocateID(key...)
 	if id == NoID {
 		return NoID
 	}
