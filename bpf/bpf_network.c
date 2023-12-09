@@ -17,10 +17,8 @@ int cil_from_network(struct __ctx_buff *ctx)
 	int ret = CTX_ACT_OK;
 
 	__u16 proto __maybe_unused;
-	struct trace_ctx trace = {
-		.reason = TRACE_REASON_UNKNOWN,
-		.monitor = TRACE_PAYLOAD_LEN,
-	};
+  enum trace_reason reason = TRACE_REASON_UNKNOWN;
+  __u32 monitor = TRACE_PAYLOAD_LEN;
 	enum trace_point obs_point_to = TRACE_TO_STACK;
 	enum trace_point obs_point_from = TRACE_FROM_NETWORK;
 	bpf_clear_meta(ctx);
@@ -70,8 +68,8 @@ int cil_from_network(struct __ctx_buff *ctx)
  */
 #ifdef ENABLE_IPSEC
 	if ((ctx->mark & MARK_MAGIC_HOST_MASK) == MARK_MAGIC_DECRYPT) {
-		trace.reason = TRACE_REASON_ENCRYPTED;
-		trace.monitor = 0;
+		reason = TRACE_REASON_ENCRYPTED;
+		monitor = 0;
 	}
 
 	/* Only possible redirect in here is the one in the do_decrypt
@@ -84,11 +82,11 @@ int cil_from_network(struct __ctx_buff *ctx)
 out:
 	send_trace_notify(ctx, obs_point_from, 0, 0, 0,
 			  ctx->ingress_ifindex,
-			  trace.reason, trace.monitor);
+			  reason, monitor);
 
 	send_trace_notify(ctx, obs_point_to, 0, 0, 0,
 			  ctx->ingress_ifindex,
-			  trace.reason, trace.monitor);
+			  reason, monitor);
 
 	return ret;
 }
