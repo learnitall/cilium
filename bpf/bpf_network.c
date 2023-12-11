@@ -23,8 +23,6 @@ int cil_from_network(struct __ctx_buff *ctx)
 	enum trace_point obs_point_from = TRACE_FROM_NETWORK;
 	bpf_clear_meta(ctx);
 
-	monitor = TRACE_PAYLOAD_LEN;
-
 	/* This program should be attached to the tc-ingress of
 	 * the network-facing device. Thus, as far as Cilium
 	 * knows, no one touches to the ctx->mark before this
@@ -39,8 +37,10 @@ int cil_from_network(struct __ctx_buff *ctx)
 
 #ifdef ENABLE_IPSEC
 	/* Pass unknown protocols to the stack */
-	if (!validate_ethertype(ctx, &proto))
+	if (!validate_ethertype(ctx, &proto)) {
+		monitor = TRACE_PAYLOAD_LEN;
 		goto out;
+	}
 
 	ret = do_decrypt(ctx, proto);
 #endif
@@ -72,6 +72,8 @@ int cil_from_network(struct __ctx_buff *ctx)
 	if ((ctx->mark & MARK_MAGIC_HOST_MASK) == MARK_MAGIC_DECRYPT) {
 		reason = TRACE_REASON_ENCRYPTED;
 		monitor = 0;
+	} else {
+		monitor = TRACE_PAYLOAD_LEN;
 	}
 
 	/* Only possible redirect in here is the one in the do_decrypt
@@ -79,6 +81,8 @@ int cil_from_network(struct __ctx_buff *ctx)
 	 */
 	if (ret == CTX_ACT_REDIRECT)
 		obs_point_to = TRACE_TO_HOST;
+#else
+	monitor = TRACE_PAYLOAD_LEN;
 #endif
 
 out:
