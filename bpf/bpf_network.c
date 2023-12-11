@@ -37,10 +37,8 @@ int cil_from_network(struct __ctx_buff *ctx)
 
 #ifdef ENABLE_IPSEC
 	/* Pass unknown protocols to the stack */
-	if (!validate_ethertype(ctx, &proto)) {
-		monitor = TRACE_PAYLOAD_LEN;
+	if (!validate_ethertype(ctx, &proto))
 		goto out;
-	}
 
 	ret = do_decrypt(ctx, proto);
 #endif
@@ -69,23 +67,25 @@ int cil_from_network(struct __ctx_buff *ctx)
  * because it doesn't matter for the non-IPSec mode.
  */
 #ifdef ENABLE_IPSEC
-	if ((ctx->mark & MARK_MAGIC_HOST_MASK) == MARK_MAGIC_DECRYPT) {
+	if ((ctx->mark & MARK_MAGIC_HOST_MASK) == MARK_MAGIC_DECRYPT)
 		reason = TRACE_REASON_ENCRYPTED;
-		monitor = 0;
-	} else {
-		monitor = TRACE_PAYLOAD_LEN;
-	}
 
 	/* Only possible redirect in here is the one in the do_decrypt
 	 * which redirects to cilium_host.
 	 */
 	if (ret == CTX_ACT_REDIRECT)
 		obs_point_to = TRACE_TO_HOST;
-#else
-	monitor = TRACE_PAYLOAD_LEN;
 #endif
 
 out:
+#ifdef ENABLE_IPSEC
+	if (reason == TRACE_REASON_ENCRYPTED)
+		monitor = 0;
+	else
+		monitor = TRACE_PAYLOAD_LEN;
+#else
+	monitor = TRACE_PAYLOAD_LEN;
+#endif
 	send_trace_notify(ctx, obs_point_from, 0, 0, 0,
 			  ctx->ingress_ifindex,
 			  reason, monitor);
