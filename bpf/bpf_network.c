@@ -69,7 +69,6 @@ int cil_from_network(struct __ctx_buff *ctx)
 #ifdef ENABLE_IPSEC
 	if ((ctx->mark & MARK_MAGIC_HOST_MASK) == MARK_MAGIC_DECRYPT) {
 		reason = TRACE_REASON_ENCRYPTED;
-		monitor = 0;
 	}
 
 	/* Only possible redirect in here is the one in the do_decrypt
