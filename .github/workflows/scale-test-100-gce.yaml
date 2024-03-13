@@ -65,7 +65,8 @@ jobs:
 
           # Setup Cilium install options
           CILIUM_INSTALL_DEFAULTS="${{ steps.default_vars.outputs.cilium_install_defaults }} \
-            --wait=false"
+            --wait=false \
+            --set pprof.enabled=true"
 
           CLUSTER_NAME="${{ env.test_name }}-${{ env.cluster_base_name }}"
 
@@ -184,6 +185,7 @@ jobs:
           export CL2_ENABLE_NETWORKPOLICIES=true
           export CL2_ALLOWED_SLOW_API_CALLS=1
           export CL2_SCHEDULER_THROUGHPUT_THRESHOLD=0
+          export CL2_ADDITIONAL_MEASUREMENT_MODULES=../../contrib/cl2-modules/cilium-agent-pprofs.yaml
 
           # CL2 needs ssh access to control plane nodes
           gcloud compute config-ssh
