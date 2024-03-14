@@ -31,13 +31,17 @@ function cilium_install {
 # * "lb-node" runs cilium in the LB-only mode.
 # * "nginx" runs the nginx server.
 
-docker network create --subnet="172.12.42.0/24,2001:db8:1::/64" --ipv6 cilium-l4lb
-docker run --privileged --name lb-node -d \
-    --network cilium-l4lb -v /lib/modules:/lib/modules \
-    docker:dind
-docker exec -t lb-node sed -i 's/127.0.0.11/8.8.8.8/g' /etc/resolv.conf
+docker network create --subnet="172.12.42.0/24" cilium-l4lb-4
+docker network create --subnet="2001:db8:1::/64" --ipv6 cilium-l4lb-6
+docker create --privileged --name lb-node --network cilium-l4lb-4 \
+  -v /lib/modules:/lib/modules docker:dind
+docker network connect cilium-l4lb-6 lb-node
+docker start lb-node
 docker exec -t lb-node mount bpffs /sys/fs/bpf -t bpf
-docker run --name nginx -d --network cilium-l4lb --dns 8.8.8.8 nginx
+
+docker create --network cilium-l4lb-4 --name nginx nginx
+docker network connect cilium-l4lb-6 nginx
+docker start nginx
 
 # Wait until Docker is ready in the lb-node node
 while ! docker exec -t lb-node docker ps >/dev/null; do sleep 1; done
@@ -433,6 +437,7 @@ ${CILIUM_EXEC} cilium-dbg recorder list
 # cleanup
 docker rm -f lb-node
 docker rm -f nginx
-docker network rm cilium-l4lb
+docker network rm cilium-l4lb-4
+docker network rm cilium-l4lb-6
 
 echo "YAY!"
