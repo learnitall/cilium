@@ -34,9 +34,10 @@ function cilium_install {
 docker network create --subnet="172.12.42.0/24,2001:db8:1::/64" --ipv6 cilium-l4lb
 docker run --privileged --name lb-node -d \
     --network cilium-l4lb -v /lib/modules:/lib/modules \
+    --dns 8.8.8.8 \
     docker:dind
 docker exec -t lb-node mount bpffs /sys/fs/bpf -t bpf
-docker run --name nginx -d --network cilium-l4lb nginx
+docker run --name nginx -d --network cilium-l4lb --dns 8.8.8.8 nginx
 
 # Wait until Docker is ready in the lb-node node
 while ! docker exec -t lb-node docker ps >/dev/null; do sleep 1; done

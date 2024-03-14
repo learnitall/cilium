@@ -36,8 +36,9 @@ clang -O2 -Wall --target=bpf -c test_tc_tunnel.c -o test_tc_tunnel.o
 docker network create cilium-l4lb
 docker run --privileged --name lb-node -d \
     --network cilium-l4lb -v /lib/modules:/lib/modules \
+    --dns 8.8.8.8 \
     docker:dind
-docker run --name nginx -d --network cilium-l4lb nginx
+docker run --name nginx -d --network cilium-l4lb --dns 8.8.8.8 nginx
 
 # Create additional veth pair which is going to be used to test XDP_REDIRECT.
 ip l a l4lb-veth0 type veth peer l4lb-veth1
