@@ -58,16 +58,6 @@ env:
   cilium_cli_ci_version:
 
 jobs:
-  commit-status-start:
-    if: ${{ github.event_name != 'push' }}
-    name: Commit Status Start
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set initial commit status
-        uses: myrotvorets/set-commit-status-action@3730c0a348a2ace3c110851bed53331bc6406e9f # v2.0.1  
-        with:
-          sha: ${{ inputs.SHA || github.sha }}
-
   setup-and-test:
     name: Setup & Test
     # Ubuntu 22.04 runner uses cgroup v2-only which is needed for some
@@ -130,15 +120,3 @@ jobs:
         if: ${{ !success() && steps.lb-test.outcome != 'skipped' }}
         run: |
           docker exec -t lb-node docker logs cilium-lb
-
-  commit-status-final:
-    if: ${{ always() && github.event_name != 'push' }}
-    name: Commit Status Final
-    needs: setup-and-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set final commit status
-        uses: myrotvorets/set-commit-status-action@3730c0a348a2ace3c110851bed53331bc6406e9f # v2.0.1  
-        with:
-          sha: ${{ inputs.SHA || github.sha }}
-          status: ${{ needs.setup-and-test.result }}
