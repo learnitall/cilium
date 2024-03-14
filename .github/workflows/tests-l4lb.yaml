@@ -85,6 +85,14 @@ jobs:
 
           echo sha=${SHA} >> $GITHUB_OUTPUT
 
+      - name: Start docker
+        shell: bash
+        run: |
+          sudo dockerd 2>&1 | sudo tee ./dockerd.logs > /dev/null & 
+          until docker ps; do
+            sleep 1
+          done
+
       - name: Install Cilium CLI
         uses: cilium/cilium-cli@7306e3cdc6caee738157f08e3e1ba26179f104e5 # v0.15.23
         with:
