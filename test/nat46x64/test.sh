@@ -21,6 +21,8 @@ function cilium_install {
             --enable-ipv6=true \
             --devices=eth0 \
             --datapath-mode=lb-only \
+            --debug \
+            --debug-verbose datapath \
             "$@"
     while ! ${CILIUM_EXEC} cilium-dbg status; do sleep 3; done
     sleep 1
@@ -103,7 +105,7 @@ nsenter -t $CONTROL_PLANE_PID -n ip neigh add ${WORKER_IP6} dev eth0 lladdr ${WO
 
 # Issue 10 requests to LB
 for i in $(seq 1 10); do
-    curl --verbose "${LB_VIP}:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "${LB_VIP}:80" || (echo "Failed $i"; exit -1)
 done
 
 # Install Cilium as standalone L4LB: XDP/Maglev/SNAT
@@ -131,7 +133,7 @@ cilium_wait_restore
 
 # Check that curl still works after restore
 for i in $(seq 1 10); do
-    curl --verbose "${LB_VIP}:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "${LB_VIP}:80" || (echo "Failed $i"; exit -1)
 done
 
 # Install Cilium as standalone L4LB: tc/Random/SNAT
@@ -144,7 +146,7 @@ cilium_wait_restore
 
 # Check that curl also works for random selection
 for i in $(seq 1 10); do
-    curl --verbose "${LB_VIP}:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "${LB_VIP}:80" || (echo "Failed $i"; exit -1)
 done
 
 # Add another IPv6->IPv6 service and reuse backend
@@ -162,20 +164,20 @@ ip -6 r a "${LB_ALT}/128" via "$LB_NODE_IP"
 
 # Issue 10 requests to LB1
 for i in $(seq 1 10); do
-    curl --verbose "${LB_VIP}:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "${LB_VIP}:80" || (echo "Failed $i"; exit -1)
 done
 
 # Try and sleep until the LB2 comes up, seems to be no other way to detect when the service is ready.
 set +e
 for i in $(seq 1 10); do
-    curl --verbose "[${LB_ALT}]:80" && break
+    curl --verbose -H "Connection: close" "[${LB_ALT}]:80" && break
     sleep 1
 done
 set -e
 
 # Issue 10 requests to LB2
 for i in $(seq 1 10); do
-    curl --verbose "[${LB_ALT}]:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "[${LB_ALT}]:80" || (echo "Failed $i"; exit -1)
 done
 
 # Check if restore for both is proper and that this also works
@@ -192,12 +194,12 @@ cilium_wait_restore
 
 # Issue 10 requests to LB1
 for i in $(seq 1 10); do
-    curl --verbose "${LB_VIP}:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "${LB_VIP}:80" || (echo "Failed $i"; exit -1)
 done
 
 # Issue 10 requests to LB2
 for i in $(seq 1 10); do
-    curl --verbose "[${LB_ALT}]:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "[${LB_ALT}]:80" || (echo "Failed $i"; exit -1)
 done
 
 ${CILIUM_EXEC} cilium-dbg service delete 1
@@ -235,7 +237,7 @@ nsenter -t $CONTROL_PLANE_PID -n ip neigh add ${WORKER_IP4} dev eth0 lladdr ${WO
 
 # Issue 10 requests to LB
 for i in $(seq 1 10); do
-    curl --verbose "[${LB_VIP}]:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "[${LB_VIP}]:80" || (echo "Failed $i"; exit -1)
 done
 
 # Install Cilium as standalone L4LB: XDP/Maglev/SNAT
@@ -264,7 +266,7 @@ cilium_wait_restore
 
 # Check that curl still works after restore
 for i in $(seq 1 10); do
-    curl --verbose "[${LB_VIP}]:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "[${LB_VIP}]:80" || (echo "Failed $i"; exit -1)
 done
 
 # Install Cilium as standalone L4LB: tc/Random/SNAT
@@ -277,7 +279,7 @@ cilium_wait_restore
 
 # Check that curl also works for random selection
 for i in $(seq 1 10); do
-    curl --verbose "[${LB_VIP}]:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "[${LB_VIP}]:80" || (echo "Failed $i"; exit -1)
 done
 
 # Add another IPv4->IPv4 service and reuse backend
@@ -295,12 +297,12 @@ ip r a "${LB_ALT}/32" via "$LB_NODE_IP"
 
 # Issue 10 requests to LB1
 for i in $(seq 1 10); do
-    curl --verbose "[${LB_VIP}]:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "[${LB_VIP}]:80" || (echo "Failed $i"; exit -1)
 done
 
 # Issue 10 requests to LB2
 for i in $(seq 1 10); do
-    curl --verbose "${LB_ALT}:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "${LB_ALT}:80" || (echo "Failed $i"; exit -1)
 done
 
 # Check if restore for both is proper and that this also works
@@ -317,12 +319,12 @@ cilium_wait_restore
 
 # Issue 10 requests to LB1
 for i in $(seq 1 10); do
-    curl --verbose "[${LB_VIP}]:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "[${LB_VIP}]:80" || (echo "Failed $i"; exit -1)
 done
 
 # Issue 10 requests to LB2
 for i in $(seq 1 10); do
-    curl --verbose "${LB_ALT}:80" || (echo "Failed $i"; exit -1)
+    curl --verbose -H "Connection: close" "${LB_ALT}:80" || (echo "Failed $i"; exit -1)
 done
 
 ${CILIUM_EXEC} cilium-dbg service delete 1
