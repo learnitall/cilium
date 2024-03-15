@@ -127,4 +127,4 @@ jobs:
       - name: Fetch Cilium Standalone LB logs
         if: ${{ !success() && steps.lb-test.outcome != 'skipped' }}
         run: |
-          docker exec -t lb-node docker logs cilium-lb
+          docker exec -t lb-node docker logs -t cilium-lb
