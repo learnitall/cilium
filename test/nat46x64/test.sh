@@ -26,6 +26,13 @@ function cilium_install {
     sleep 1
 }
 
+function cilium_wait_restore {
+  while ! docker exec -t lb-node docker logs cilium-lb | grep -i "rewrote endpoint bpf program"; do
+    docker exec -t lb-node docker logs cilium-lb
+    sleep 3
+  done
+}
+
 # With Docker-in-Docker we create two nodes:
 #
 # * "lb-node" runs cilium in the LB-only mode.
@@ -120,6 +127,7 @@ cilium_install \
     --bpf-lb-dsr-dispatch=ipip \
     --bpf-lb-acceleration=disabled \
     --bpf-lb-mode=snat
+cilium_wait_restore
 
 # Check that curl still works after restore
 for i in $(seq 1 10); do
@@ -132,6 +140,7 @@ cilium_install \
     --bpf-lb-dsr-dispatch=ipip \
     --bpf-lb-acceleration=disabled \
     --bpf-lb-mode=snat
+cilium_wait_restore
 
 # Check that curl also works for random selection
 for i in $(seq 1 10); do
@@ -179,6 +188,7 @@ cilium_install \
     --bpf-lb-acceleration=disabled \
     --bpf-lb-mode=snat \
     --enable-nat46x64-gateway=true
+cilium_wait_restore
 
 # Issue 10 requests to LB1
 for i in $(seq 1 10); do
@@ -234,6 +244,7 @@ cilium_install \
     --bpf-lb-dsr-dispatch=ipip \
     --bpf-lb-acceleration=native \
     --bpf-lb-mode=snat
+cilium_wait_restore
 
 # Check that restoration went fine. Note that we currently cannot do runtime test
 # as veth + XDP is broken when switching protocols. Needs something bare metal.
@@ -249,6 +260,7 @@ cilium_install \
     --bpf-lb-dsr-dispatch=ipip \
     --bpf-lb-acceleration=disabled \
     --bpf-lb-mode=snat
+cilium_wait_restore
 
 # Check that curl still works after restore
 for i in $(seq 1 10); do
@@ -261,6 +273,7 @@ cilium_install \
     --bpf-lb-dsr-dispatch=ipip \
     --bpf-lb-acceleration=disabled \
     --bpf-lb-mode=snat
+cilium_wait_restore
 
 # Check that curl also works for random selection
 for i in $(seq 1 10); do
@@ -300,6 +313,7 @@ cilium_install \
     --bpf-lb-acceleration=disabled \
     --bpf-lb-mode=snat \
     --enable-nat46x64-gateway=true
+cilium_wait_restore
 
 # Issue 10 requests to LB1
 for i in $(seq 1 10); do
