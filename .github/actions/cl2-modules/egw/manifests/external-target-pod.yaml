@@ -1,0 +1,26 @@
+{{$AllowedCIDR := DefaultParam .CL2_EGW_GATEWAY_NODE_CIDR "" }}
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: egw-external-target
+  labels:
+    app.kubernetes.io/name: egw-external-target
+spec:
+  hostNetwork: true
+  nodeSelector:
+    cilium.io/no-schedule: "true"
+  tolerations:
+  - key: node.kubernetes.io/not-ready
+    operator: Exists
+    effect: NoSchedule
+  containers:
+  - name: external-target
+    image: quay.io/cilium-dev/egw-scale-test:latest
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 1337
+    args: 
+      - "external-target"
+      - "--allowed-cidr={{$AllowedCIDR}}"
+      - "--listen-port=1337" 

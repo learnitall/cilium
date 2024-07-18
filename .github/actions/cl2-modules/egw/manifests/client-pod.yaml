@@ -1,0 +1,38 @@
+{{$ExternalTargetAddr := DefaultParam .CL2_EGW_EXTERNAL_TARGET_ADDR "" }}
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{.Name}}
+  labels:
+    name: {{.Name}}
+    app.kubernetes.io/name: egw-client
+    app.kubernetes.io/egw-client-is-bootstrap: {{.ClientIsBootstrap}}
+spec:
+  nodeSelector:
+    scale.cilium.io/component: egw-client
+  containers:
+  - name: egw-client
+    image: quay.io/cilium-dev/egw-scale-test:latest
+    imagePullPolicy: IfNotPresent
+    args:
+      - "client"
+      - "--external-target-addr={{$ExternalTargetAddr}}"
+    ports:
+    - name: prometheus
+      containerPort: 2112
+    env:
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    readinessProbe:
+      httpGet:
+        path: "/readyz"
+        port: 2112
+      initialDelaySeconds: 5
+      periodSeconds: 1

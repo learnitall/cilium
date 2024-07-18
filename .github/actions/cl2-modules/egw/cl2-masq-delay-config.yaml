@@ -1,0 +1,108 @@
+{{$NumEGWClients := DefaultParam .CL2_NUM_EGW_CLIENTS 5}}
+{{$QPS := DefaultParam .CLS_EGW_CLIENTS_QPS 3}}
+name: egw-scale-test-masq-delay
+namespace:
+  number: 1
+tuningSets:
+- name: Uniform1qps
+  qpsLoad:
+    qps: 1
+- name: UniformParamqps
+  qpsLoad:
+    qps: {{$QPS}}
+steps:
+- name: Create External Target Pod
+  phases:
+  - namespaceRange:
+      min: 1
+      max: 1
+    replicasPerNamespace: 1
+    tuningSet: Uniform1qps
+    objectBundle:
+    - basename: egw-external-target
+      objectTemplatePath: manifests/external-target-pod.yaml
+- name: Wait for external target pod to be running
+  measurements:
+  - Identifier: WaitForRunningPods
+    Method: WaitForRunningPods
+    Params:
+      labelSelector: app.kubernetes.io/name=egw-external-target
+      desiredPodCount: 1
+- name: Create bootstrap EGW client Pod
+  phases:
+  - namespaceRange:
+      min: 1
+      max: 1
+    replicasPerNamespace: 1
+    tuningSet: Uniform1qps
+    objectBundle:
+    - basename: egw-client-pod
+      objectTemplatePath: manifests/client-pod.yaml
+      templateFillMap:
+        ClientIsBootstrap: "true"
+- name: Wait for EGW bootstrap pod to be running
+  measurements:
+  - Identifier: WaitForRunningPods
+    Method: WaitForRunningPods
+    Params:
+      labelSelector: app.kubernetes.io/name=egw-client,app.kubernetes.io/egw-client-is-bootstrap=true
+      desiredPodCount: 1
+- name: Start measurements
+  measurements:
+  - Identifier: EGWMasqueradeDelayTestMetrics
+    Method: GenericPrometheusQuery
+    Params:
+      action: start
+      metricName: "EGW Masquerade Delay Test Metrics"
+      metricVersion: v1
+      unit: s
+      queries:
+      - name: EGW Masquerade Delay - 50th Percentile
+        query: quantile(0.5, egw_scale_test_masquerade_delay_seconds_total)
+      - name: EGW Masquerade Delay - 90th Percentile
+        query: quantile(0.9, egw_scale_test_masquerade_delay_seconds_total)
+      - name: EGW Masquerade Delay - 95th Percentile
+        query: quantile(0.95, egw_scale_test_masquerade_delay_seconds_total)
+      - name: EGW Masquerade Delay - 99th Percentile
+        query: quantile(0.99, egw_scale_test_masquerade_delay_seconds_total)
+      - name: EGW Leaked Pings - Total
+        query: sum(egw_scale_test_failed_requests_total)
+      - name: EGW Leaked Pings - 50th Percentile
+        query: quantile(0.5, egw_scale_test_failed_requests_total)
+      - name: EGW Leaked Pings - 90th Percentile
+        query: quantile(0.9, egw_scale_test_failed_requests_total)
+      - name: EGW Leaked Pings - 95th Percentile
+        query: quantile(0.95, egw_scale_test_failed_requests_total)
+      - name: EGW Leaked Pings - 99th Percentile
+        query: quantile(0.99, egw_scale_test_failed_requests_total)
+- name: Create EGW client Pods
+  phases:
+  - namespaceRange:
+      min: 1
+      max: 1
+    replicasPerNamespace: {{$NumEGWClients}}
+    tuningSet: UniformParamqps
+    objectBundle:
+    - basename: egw-client-pod
+      objectTemplatePath: manifests/client-pod.yaml
+      templateFillMap:
+        ClientIsBootstrap: "false"
+- name: Wait for EGW Client pods to be running
+  measurements:
+  - Identifier: WaitForRunningPods
+    Method: WaitForRunningPods
+    Params:
+      labelSelector: app.kubernetes.io/name=egw-client,app.kubernetes.io/egw-client-is-bootstrap=false
+      desiredPodCount: {{$NumEGWClients}}
+- name: Sleep scrape interval
+  measurements:
+  - Identifier: SleepScrapeInterval
+    Method: Sleep
+    Params:
+      duration: 500s
+- name: Collect metrics
+  measurements:
+  - Identifier: EGWMasqueradeDelayTestMetrics
+    Method: GenericPrometheusQuery
+    Params:
+      action: gather
