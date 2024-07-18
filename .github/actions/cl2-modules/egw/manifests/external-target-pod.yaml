@@ -16,7 +16,7 @@ spec:
     effect: NoSchedule
   containers:
   - name: external-target
-    image: quay.io/cilium-dev/egw-scale-test:latest
+    image: docker.io/learnitall/egw-scale-test:latest
     imagePullPolicy: IfNotPresent
     ports:
     - containerPort: 1337

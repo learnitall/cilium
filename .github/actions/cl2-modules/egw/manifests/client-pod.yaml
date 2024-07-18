@@ -13,7 +13,7 @@ spec:
     scale.cilium.io/component: egw-client
   containers:
   - name: egw-client
-    image: quay.io/cilium-dev/egw-scale-test:latest
+    image: docker.io/learnitall/egw-scale-test:latest
     imagePullPolicy: IfNotPresent
     args:
       - "client"

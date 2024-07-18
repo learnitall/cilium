@@ -3,6 +3,9 @@ name: Scale Test Egress Gateway
 on:
   schedule:
     - cron: '27 0 * * 1-5'
+  push:
+    branches:
+      - pr/learnitall/init-egw-scale-test
 
   workflow_dispatch:
     inputs:
@@ -68,7 +71,7 @@ env:
   # renovate: datasource=docker depName=google/cloud-sdk
   gcloud_version: 485.0.0
   # renovate: datasource=git-refs depName=https://github.com/cilium/scaffolding branch=main
-  egw_utils_ref: 93927fbee24f4aa3b1165ddc903e0ec638bae8a6
+  egw_utils_ref: e4837b7edc4efd2d86b2b4dc9671eb3cfc9f1ad1
 
   test_name: scale-egw
   cluster_name: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -118,6 +121,8 @@ jobs:
           else
             SHA="${{ github.sha }}"
           fi
+
+          SHA="de06bcfb3cf8ff165421729d2bf579c92fef7631"
 
           CILIUM_INSTALL_DEFAULTS="--chart-directory=install/kubernetes/cilium \
             --set pprof.enabled=true \
