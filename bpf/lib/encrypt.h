@@ -285,6 +285,49 @@ encrypt_overlay_and_redirect(struct __ctx_buff *ctx)
 }
 #endif /* ENABLE_ENCRYPTED_OVERLAY */
 
+static __always_inline int
+get_ipsec_spi_from_esphdr(struct __ctx_buff *ctx, __be32 *spi)
+{
+	struct iphdr *ip4 = NULL;
+	void *data, *data_end;
+	struct ip_esp_hdr *esp;
+
+	if (unlikely(!revalidate_data(ctx, &data, &data_end, &ip4)))
+		return DROP_INVALID;
+
+	if (unlikely(ip4->protocol != IPPROTO_ESP))
+		return CTX_ACT_OK;
+
+	esp = (void *)ip4 + sizeof(struct iphdr);
+	if ((void *)esp + sizeof(struct ip_esp_hdr) > data_end)
+		return DROP_INVALID;
+
+	*spi = esp->spi;
+
+	return CTX_ACT_OK;
+}
+
+static __always_inline int stuff_ctx_hash_in_spi(struct __ctx_buff *ctx)
+{
+	struct iphdr *ip4 = NULL;
+	void *data, *data_end;
+	struct ip_esp_hdr *esp;
+
+	if (unlikely(!revalidate_data(ctx, &data, &data_end, &ip4)))
+		return DROP_INVALID;
+
+	if (unlikely(ip4->protocol != IPPROTO_ESP))
+		return CTX_ACT_OK;
+
+	esp = (void *)ip4 + sizeof(struct iphdr);
+	if ((void *)esp + sizeof(struct ip_esp_hdr) > data_end)
+		return DROP_INVALID;
+
+	esp->spi = (esp->spi & 0xff000000) | (get_hash_recalc(ctx) & 0xffffff);
+
+	return CTX_ACT_OK;
+}
+
 #else
 static __always_inline int
 do_decrypt(struct __ctx_buff __maybe_unused *ctx, __u16 __maybe_unused proto)

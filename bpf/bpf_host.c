@@ -1117,6 +1117,18 @@ do_netdev(struct __ctx_buff *ctx, __u16 proto, const bool from_host)
 
 #ifdef ENABLE_IPSEC
 		if (magic == MARK_MAGIC_ENCRYPT) {
+#ifdef ENABLE_IPSEC_RPS
+			__be32 spi = 0;
+
+			ret = get_ipsec_spi_from_esphdr(ctx, &spi);
+			if (IS_ERR(ret))
+				return send_drop_notify_error(ctx, identity, ret, CTX_ACT_DROP, METRIC_EGRESS);
+
+			ret = stuff_ctx_hash_in_spi(ctx);
+			if (IS_ERR(ret))
+				return send_drop_notify_error(ctx, identity, ret, CTX_ACT_DROP, METRIC_EGRESS);
+
+#endif /* ENABLE_IPSEC_RPS */
 			send_trace_notify(ctx, TRACE_FROM_STACK, identity, UNKNOWN_ID,
 					  TRACE_EP_ID_UNKNOWN,
 					  ctx->ingress_ifindex, TRACE_REASON_ENCRYPTED, 0);
